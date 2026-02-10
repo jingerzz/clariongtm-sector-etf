@@ -7,7 +7,7 @@ const Index = () => {
   return (
     <div className="flex flex-col h-screen bg-[hsl(0,0%,4%)] text-[hsl(0,0%,90%)]">
       <Header />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
         <ETFGrid />
         <NewsSidebar />
       </div>

@@ -23,7 +23,7 @@ export function ETFGrid() {
   }
 
   return (
-    <div className="flex-1 overflow-auto p-4">
+    <div className="flex-1 overflow-auto p-4 min-h-0">
       {data?.fetchedAt && (
         <p className="text-[10px] text-[hsl(0,0%,40%)] mb-3">
           Updated {timeAgo(data.fetchedAt)}

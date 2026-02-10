@@ -65,7 +65,7 @@ export function ETFCard({ etf }: { etf: ETFItem }) {
       </div>
 
       {/* Moving Averages */}
-      <div className="grid grid-cols-3 gap-1 text-[11px]">
+      <div className="grid grid-cols-3 gap-2 text-[11px]">
         {[
           { label: "200d", value: etf.ma200 },
           { label: "50d", value: etf.ma50 },
@@ -121,7 +121,7 @@ export function ETFCard({ etf }: { etf: ETFItem }) {
           {etf.fearGreedScore}
         </span>
       </div>
-      <div className="text-[9px] text-right" style={{ color: fgColor(etf.fearGreedScore) }}>
+      <div className="text-[9px] text-right pb-0.5" style={{ color: fgColor(etf.fearGreedScore) }}>
         {etf.fearGreedLabel}
       </div>
     </div>
