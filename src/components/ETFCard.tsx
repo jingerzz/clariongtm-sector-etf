@@ -42,19 +42,19 @@ export function ETFCard({ etf }: { etf: ETFItem }) {
   return (
     <div className="border border-[hsl(0,0%,18%)] rounded-lg bg-[hsl(0,0%,7%)] p-4 flex flex-col gap-2">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div>
+        <div className="flex items-center gap-2">
           <span className="font-mono font-bold text-sm text-[hsl(0,0%,95%)]">{etf.ticker}</span>
-          <span className="ml-2 text-[10px] uppercase tracking-wider text-[hsl(0,0%,50%)]">
+          <span className="text-[10px] uppercase tracking-wider text-[hsl(0,0%,50%)]">
             {etf.sector}
           </span>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-2 mt-1">
           <span className="font-mono text-sm font-semibold text-[hsl(0,0%,90%)]">
             ${etf.price.toFixed(2)}
           </span>
           <span
-            className={`ml-2 text-xs font-mono ${
+            className={`text-xs font-mono ${
               isPositive ? "text-[hsl(142,71%,45%)]" : "text-[hsl(0,84%,60%)]"
             }`}
           >
