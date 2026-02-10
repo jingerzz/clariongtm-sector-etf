@@ -1,103 +1,59 @@
 
+# Rebuild the Sector ETF Tracker Dashboard
 
-# Pre-Populate Cache with Scheduled Jobs (Cron)
+The edge functions and database cache are intact and working. The frontend components were lost. This plan recreates the full UI from the screenshot, reading data directly from the backend.
 
-## What This Solves
+## Overview
 
-Right now, the cache works reactively: the **first visitor** after a cache expiry still waits 3-5+ seconds while the edge function fetches fresh data. With scheduled cron jobs, the database is always pre-populated with fresh data — no visitor ever triggers an API call directly.
+Rebuild the entire dashboard: a dark trading-terminal interface with a 4-column ETF card grid (~70% width), a scrollable news sidebar (~30% width), a header, and a footer with market status.
 
-## How It Works
+## Files to Create/Modify
 
-```text
-Current (reactive cache):
-  User visits --> Edge Function --> Cache expired? --> API call (slow) --> Update cache --> Respond
+### 1. Install missing dependency
+- Add `@supabase/supabase-js` (fixes the current build error)
 
-With cron (proactive cache):
-  Cron job runs on schedule --> Edge Function --> API call --> Update cache
-  User visits --> Edge Function --> Cache always fresh --> Instant response
-```
+### 2. Create edge function files
+The deployed functions still work but their source code is missing. Recreate:
+- `supabase/functions/fetch-etf-data/index.ts` -- reads from `cache` table (key `etf-data`), falls back to Yahoo Finance API
+- `supabase/functions/fetch-etf-news/index.ts` -- reads from `cache` table (key `etf-news`), falls back to Perplexity API
 
-## Implementation
+### 3. Create frontend data hooks
+- `src/hooks/useETFData.ts` -- React Query hook calling `fetch-etf-data` edge function, returns array of ETF objects with `fetchedAt` timestamp. Polls every 5 min during market hours, 30 min otherwise.
+- `src/hooks/useMarketNews.ts` -- React Query hook calling `fetch-etf-news` edge function, returns array of news items with `fetchedAt` timestamp. Polls every 15 min during market hours, 60 min otherwise.
+- `src/hooks/useMarketStatus.ts` -- Pure client-side hook returning whether US markets are open (Mon-Fri 9:30-16:00 ET).
 
-### 1. Enable required database extensions
+### 4. Create UI components
+- `src/components/Header.tsx` -- "SECTOR ETF TRACKER" title with green dot indicator and refresh button
+- `src/components/ETFCard.tsx` -- Single ETF tile showing: ticker, sector label, price, daily change, 200/50/9-day MAs with trend arrows, RSI with color-coded label, volume with % change, fear/greed progress bar with score
+- `src/components/ETFGrid.tsx` -- 4-column responsive grid of ETFCard components, with "Updated..." timestamp
+- `src/components/NewsSidebar.tsx` -- Right sidebar with "MARKET NEWS" header, scrollable list of news cards (headline, summary, source, relative timestamp)
+- `src/components/MarketFooter.tsx` -- Footer bar showing market open/closed status, data refresh intervals
 
-A migration to enable `pg_cron` and `pg_net`, which allow scheduled HTTP calls from within the database.
+### 5. Update `src/pages/Index.tsx`
+- Compose all components into the dashboard layout
+- Dark background, full-viewport layout
+- Left section (~70%): Header + ETFGrid
+- Right section (~30%): NewsSidebar
+- Bottom: MarketFooter
 
-```sql
-CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
-```
+### 6. Update `src/index.css`
+- Ensure dark mode is the default (add `dark` class to root or set dark theme variables as default)
 
-### 2. Create cron jobs
+## Data Shape Reference
 
-Two scheduled jobs that call the existing edge functions on a fixed interval. These will be inserted via the SQL insert tool (not a migration, since they contain project-specific URLs and keys).
+**ETF data** (from cache key `etf-data`): array of objects with fields:
+`ticker, name, sector, price, ma200, ma50, ma9, rsi, volume, avgVolume, fearGreedScore, fearGreedLabel`
 
-**ETF Data** -- every 5 minutes:
-```text
-cron.schedule('refresh-etf-data', '*/5 * * * *', ...)
-  --> POST to fetch-etf-data edge function
-```
+**News data** (from cache key `etf-news`): array of objects with fields:
+`id, headline, summary, source, url, timestamp`
 
-**News** -- every 15 minutes:
-```text
-cron.schedule('refresh-etf-news', '*/15 * * * *', ...)
-  --> POST to fetch-etf-news edge function
-```
+Both endpoints also return a `fetchedAt` ISO timestamp for the "Updated..." label.
 
-These intervals match market-open refresh rates. During off-hours the cache TTLs are longer (30min / 60min), so the cron will hit a still-valid cache and the edge function will return the cached data without calling external APIs — no wasted API calls.
+## Visual Design Details
 
-### 3. No edge function changes needed
-
-The existing cache logic already handles this correctly:
-- If the cache is fresh, the function returns cached data (cron call is a no-op)
-- If the cache is stale, the function fetches fresh data and updates the cache
-- The cron just ensures the cache is refreshed proactively rather than waiting for a user visit
-
-### 4. No frontend changes needed
-
-The frontend already reads from the edge functions, which read from the cache. Everything stays the same.
-
-## Technical Details
-
-### Cron SQL (to be run via insert tool)
-
-```sql
--- ETF data: refresh every 5 minutes
-SELECT cron.schedule(
-  'refresh-etf-data',
-  '*/5 * * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://wbopkeaiwbacxmncaagf.supabase.co/functions/v1/fetch-etf-data',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <anon-key>"}'::jsonb,
-    body := '{}'::jsonb
-  ) AS request_id;
-  $$
-);
-
--- News: refresh every 15 minutes
-SELECT cron.schedule(
-  'refresh-etf-news',
-  '*/15 * * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://wbopkeaiwbacxmncaagf.supabase.co/functions/v1/fetch-etf-news',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <anon-key>"}'::jsonb,
-    body := '{}'::jsonb
-  ) AS request_id;
-  $$
-);
-```
-
-### API Usage Impact
-
-At 5-minute intervals, ETF data generates ~288 calls/day to Yahoo Finance (12 tickers each = ~288 edge function calls, but many will be cache hits during off-hours). News at 15-minute intervals generates ~96 calls/day to Perplexity (again, many cache hits). Both well within rate limits.
-
-## Files Changed
-
-| Change | Method |
-|--------|--------|
-| Enable `pg_cron` + `pg_net` extensions | Database migration |
-| Schedule two cron jobs | SQL insert tool (contains project-specific data) |
-
-No edge function or frontend changes required.
+- Dark background (`#0a0a0a` or similar very dark gray)
+- Cards with dark borders and subtle backgrounds
+- Green for positive values/bullish, red for negative/bearish, amber/yellow for neutral
+- Fear/Greed bar: gradient from red (fear) through yellow (neutral) to green (greed)
+- Monospace font for the header title
+- Compact, information-dense layout matching the terminal aesthetic from the screenshot
