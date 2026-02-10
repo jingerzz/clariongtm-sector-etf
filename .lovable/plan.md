@@ -1,38 +1,43 @@
 
-# Fix Spacing and Viewability Issues
 
-## Problems Found
+# Simplify ETF Cards for Better Readability
 
-1. **`App.css` constrains the layout**: The `#root` styles set `max-width: 1280px`, `padding: 2rem`, and `text-align: center` -- leftover Vite boilerplate. This adds unwanted padding around the dashboard and caps its width, wasting screen space on large monitors.
-
-2. **Mobile: no responsive stacking**: The main content area uses `flex` with a sidebar at `w-full lg:w-80`, but on small screens both the ETF grid (`flex-1`) and sidebar fight for space. The news sidebar takes over and the ETF grid becomes invisible. The layout needs to stack vertically on mobile (grid on top, news below) or use a tabbed view.
-
-3. **ETF card text cramping**: The 3-column MA row (`grid-cols-3`) gets tight on smaller cards, and the `text-[11px]` / `text-[10px]` sizes may clip on some screens. Minor spacing tweaks needed.
+## Problem
+The ETF cards are too information-dense, especially the 3-column moving average row which crams three values with trend icons into a tight space. This makes them hard to scan quickly across browsers.
 
 ## Changes
 
-### 1. Clean up `App.css`
-Remove the `#root` block entirely (or replace with full-width styles). This eliminates the max-width cap and the 2rem padding that push the dashboard inward.
+### 1. `src/components/ETFCard.tsx` — Simplify to single 50-day MA
+- **Remove** the 3-column MA grid entirely
+- **Replace** with a single inline row showing just the 50-day MA value and its trend icon
+- This frees up vertical space and eliminates the most cramped section of the card
+- The 50-day MA is the most commonly referenced moving average for intermediate trend analysis, making it the best single choice
 
-### 2. Make `Index.tsx` layout responsive
-- On large screens (`lg+`): keep the current side-by-side flex layout (ETF grid + news sidebar)
-- On small screens (`< lg`): stack vertically -- ETF grid first, then news section below with a collapsible or scrollable area
+**Before (3 rows, cramped):**
+```text
+200d 542.31 ↑  50d 538.10 ↑  9d 540.22 →
+```
 
-### 3. Update `NewsSidebar.tsx` for mobile
-- Remove `w-full` default (which makes it take 100% on mobile and push the grid out)
-- On mobile: render as a full-width section below the grid with a max height and scroll
-- On desktop: keep the fixed `lg:w-80 xl:w-96` sidebar behavior
+**After (1 clean line):**
+```text
+50d MA  538.10  ↑
+```
 
-### 4. Minor ETF card spacing
-- Add slightly more padding between MA values in the 3-column grid
-- Ensure the Fear/Greed label row has a small bottom margin so cards don't feel clipped
+### 2. `src/components/ETFCard.tsx` — Increase base font sizes slightly
+- Bump the RSI/Volume row from `text-[11px]` to `text-xs` (12px) for better legibility
+- Bump the Fear/Greed label from `text-[9px]` to `text-[10px]`
+
+### 3. `src/components/ETFCard.tsx` — Add slightly more padding
+- Increase card padding from `p-3` to `p-4` for more breathing room
 
 ## Technical Details
 
-| File | Change |
-|------|--------|
-| `src/App.css` | Remove `#root` max-width/padding/text-align rules |
-| `src/pages/Index.tsx` | Change inner `flex` to `flex-col lg:flex-row` for responsive stacking |
-| `src/components/NewsSidebar.tsx` | Replace `w-full lg:w-80` with responsive classes; add max-h on mobile |
-| `src/components/ETFCard.tsx` | Add `gap-2` to MA grid, minor bottom padding |
-| `src/components/ETFGrid.tsx` | Ensure grid scrolls properly within its container on both layouts |
+Only one file changes: `src/components/ETFCard.tsx`
+
+| Section | Current | Proposed |
+|---------|---------|----------|
+| Moving Averages | 3-column grid (200d, 50d, 9d) | Single row: 50d MA only |
+| Card padding | `p-3` | `p-4` |
+| RSI/Vol font | `text-[11px]` | `text-xs` |
+| F/G label font | `text-[9px]` | `text-[10px]` |
+
