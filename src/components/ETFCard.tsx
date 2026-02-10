@@ -40,7 +40,7 @@ export function ETFCard({ etf }: { etf: ETFItem }) {
   const isPositive = dailyChange >= 0;
 
   return (
-    <div className="border border-[hsl(0,0%,18%)] rounded-lg bg-[hsl(0,0%,7%)] p-3 flex flex-col gap-2">
+    <div className="border border-[hsl(0,0%,18%)] rounded-lg bg-[hsl(0,0%,7%)] p-4 flex flex-col gap-2">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -64,23 +64,15 @@ export function ETFCard({ etf }: { etf: ETFItem }) {
         </div>
       </div>
 
-      {/* Moving Averages */}
-      <div className="grid grid-cols-3 gap-2 text-[11px]">
-        {[
-          { label: "200d", value: etf.ma200 },
-          { label: "50d", value: etf.ma50 },
-          { label: "9d", value: etf.ma9 },
-        ].map((ma) => (
-          <div key={ma.label} className="flex items-center gap-1 text-[hsl(0,0%,55%)]">
-            <span>{ma.label}</span>
-            <span className="font-mono text-[hsl(0,0%,75%)]">{ma.value.toFixed(2)}</span>
-            {trendIcon(etf.price, ma.value)}
-          </div>
-        ))}
+      {/* 50-day MA */}
+      <div className="flex items-center gap-2 text-xs text-[hsl(0,0%,55%)]">
+        <span>50d MA</span>
+        <span className="font-mono text-[hsl(0,0%,75%)]">{etf.ma50.toFixed(2)}</span>
+        {trendIcon(etf.price, etf.ma50)}
       </div>
 
       {/* RSI & Volume */}
-      <div className="flex items-center justify-between text-[11px]">
+      <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1">
           <span className="text-[hsl(0,0%,50%)]">RSI</span>
           <span className={`font-mono font-semibold ${rsiColor(etf.rsi)}`}>
@@ -121,7 +113,7 @@ export function ETFCard({ etf }: { etf: ETFItem }) {
           {etf.fearGreedScore}
         </span>
       </div>
-      <div className="text-[9px] text-right pb-0.5" style={{ color: fgColor(etf.fearGreedScore) }}>
+      <div className="text-[10px] text-right pb-0.5" style={{ color: fgColor(etf.fearGreedScore) }}>
         {etf.fearGreedLabel}
       </div>
     </div>
