@@ -18,7 +18,7 @@ export function NewsSidebar() {
   const { data, isLoading } = useMarketNews();
 
   return (
-    <aside className="w-full lg:w-80 xl:w-96 border-l border-[hsl(0,0%,18%)] flex flex-col bg-[hsl(0,0%,5%)]">
+    <aside className="lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-[hsl(0,0%,18%)] flex flex-col bg-[hsl(0,0%,5%)] max-h-[40vh] lg:max-h-none">
       <div className="px-4 py-3 border-b border-[hsl(0,0%,18%)]">
         <h2 className="text-xs font-bold tracking-widest font-mono text-[hsl(0,0%,70%)]">
           MARKET NEWS
