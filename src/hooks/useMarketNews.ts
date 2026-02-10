@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMarketStatus } from "./useMarketStatus";
 
 export interface NewsItem {
   id: string;
@@ -17,8 +16,6 @@ interface NewsResponse {
 }
 
 export function useMarketNews() {
-  const isMarketOpen = useMarketStatus();
-
   return useQuery<NewsResponse>({
     queryKey: ["market-news"],
     queryFn: async () => {
@@ -26,7 +23,5 @@ export function useMarketNews() {
       if (error) throw error;
       return data as NewsResponse;
     },
-    refetchInterval: isMarketOpen ? 15 * 60_000 : 60 * 60_000,
-    staleTime: 5 * 60_000,
   });
 }

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMarketStatus } from "./useMarketStatus";
 
 export interface ETFItem {
   ticker: string;
@@ -23,8 +22,6 @@ interface ETFResponse {
 }
 
 export function useETFData() {
-  const isMarketOpen = useMarketStatus();
-
   return useQuery<ETFResponse>({
     queryKey: ["etf-data"],
     queryFn: async () => {
@@ -32,7 +29,5 @@ export function useETFData() {
       if (error) throw error;
       return data as ETFResponse;
     },
-    refetchInterval: isMarketOpen ? 5 * 60_000 : 30 * 60_000,
-    staleTime: 60_000,
   });
 }
