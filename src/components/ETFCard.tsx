@@ -27,16 +27,9 @@ function fgColor(score: number) {
   return "hsl(142,71%,45%)";
 }
 
-function formatVolume(v: number) {
-  if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
-  if (v >= 1e3) return (v / 1e3).toFixed(1) + "K";
-  return v.toString();
-}
 
 export function ETFCard({ etf }: { etf: ETFItem }) {
   const dailyChange = ((etf.price - etf.ma9) / etf.ma9) * 100;
-  const volChange = etf.avgVolume ? ((etf.volume - etf.avgVolume) / etf.avgVolume) * 100 : 0;
   const isPositive = dailyChange >= 0;
 
   return (
@@ -71,27 +64,13 @@ export function ETFCard({ etf }: { etf: ETFItem }) {
         {trendIcon(etf.price, etf.ma50)}
       </div>
 
-      {/* RSI & Volume */}
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1">
-          <span className="text-[hsl(0,0%,50%)]">RSI</span>
-          <span className={`font-mono font-semibold ${rsiColor(etf.rsi)}`}>
-            {etf.rsi.toFixed(1)}
-          </span>
-          <span className={`text-[10px] ${rsiColor(etf.rsi)}`}>{rsiLabel(etf.rsi)}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-[hsl(0,0%,50%)]">Vol</span>
-          <span className="font-mono text-[hsl(0,0%,75%)]">{formatVolume(etf.volume)}</span>
-          <span
-            className={`text-[10px] font-mono ${
-              volChange >= 0 ? "text-[hsl(142,71%,45%)]" : "text-[hsl(0,84%,60%)]"
-            }`}
-          >
-            {volChange >= 0 ? "+" : ""}
-            {volChange.toFixed(0)}%
-          </span>
-        </div>
+      {/* RSI */}
+      <div className="flex items-center gap-1 text-xs">
+        <span className="text-[hsl(0,0%,50%)]">RSI</span>
+        <span className={`font-mono font-semibold ${rsiColor(etf.rsi)}`}>
+          {etf.rsi.toFixed(1)}
+        </span>
+        <span className={`text-[10px] ${rsiColor(etf.rsi)}`}>{rsiLabel(etf.rsi)}</span>
       </div>
 
       {/* Fear/Greed Bar */}
