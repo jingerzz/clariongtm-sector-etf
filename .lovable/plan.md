@@ -1,59 +1,38 @@
 
-# Rebuild the Sector ETF Tracker Dashboard
+# Fix Spacing and Viewability Issues
 
-The edge functions and database cache are intact and working. The frontend components were lost. This plan recreates the full UI from the screenshot, reading data directly from the backend.
+## Problems Found
 
-## Overview
+1. **`App.css` constrains the layout**: The `#root` styles set `max-width: 1280px`, `padding: 2rem`, and `text-align: center` -- leftover Vite boilerplate. This adds unwanted padding around the dashboard and caps its width, wasting screen space on large monitors.
 
-Rebuild the entire dashboard: a dark trading-terminal interface with a 4-column ETF card grid (~70% width), a scrollable news sidebar (~30% width), a header, and a footer with market status.
+2. **Mobile: no responsive stacking**: The main content area uses `flex` with a sidebar at `w-full lg:w-80`, but on small screens both the ETF grid (`flex-1`) and sidebar fight for space. The news sidebar takes over and the ETF grid becomes invisible. The layout needs to stack vertically on mobile (grid on top, news below) or use a tabbed view.
 
-## Files to Create/Modify
+3. **ETF card text cramping**: The 3-column MA row (`grid-cols-3`) gets tight on smaller cards, and the `text-[11px]` / `text-[10px]` sizes may clip on some screens. Minor spacing tweaks needed.
 
-### 1. Install missing dependency
-- Add `@supabase/supabase-js` (fixes the current build error)
+## Changes
 
-### 2. Create edge function files
-The deployed functions still work but their source code is missing. Recreate:
-- `supabase/functions/fetch-etf-data/index.ts` -- reads from `cache` table (key `etf-data`), falls back to Yahoo Finance API
-- `supabase/functions/fetch-etf-news/index.ts` -- reads from `cache` table (key `etf-news`), falls back to Perplexity API
+### 1. Clean up `App.css`
+Remove the `#root` block entirely (or replace with full-width styles). This eliminates the max-width cap and the 2rem padding that push the dashboard inward.
 
-### 3. Create frontend data hooks
-- `src/hooks/useETFData.ts` -- React Query hook calling `fetch-etf-data` edge function, returns array of ETF objects with `fetchedAt` timestamp. Polls every 5 min during market hours, 30 min otherwise.
-- `src/hooks/useMarketNews.ts` -- React Query hook calling `fetch-etf-news` edge function, returns array of news items with `fetchedAt` timestamp. Polls every 15 min during market hours, 60 min otherwise.
-- `src/hooks/useMarketStatus.ts` -- Pure client-side hook returning whether US markets are open (Mon-Fri 9:30-16:00 ET).
+### 2. Make `Index.tsx` layout responsive
+- On large screens (`lg+`): keep the current side-by-side flex layout (ETF grid + news sidebar)
+- On small screens (`< lg`): stack vertically -- ETF grid first, then news section below with a collapsible or scrollable area
 
-### 4. Create UI components
-- `src/components/Header.tsx` -- "SECTOR ETF TRACKER" title with green dot indicator and refresh button
-- `src/components/ETFCard.tsx` -- Single ETF tile showing: ticker, sector label, price, daily change, 200/50/9-day MAs with trend arrows, RSI with color-coded label, volume with % change, fear/greed progress bar with score
-- `src/components/ETFGrid.tsx` -- 4-column responsive grid of ETFCard components, with "Updated..." timestamp
-- `src/components/NewsSidebar.tsx` -- Right sidebar with "MARKET NEWS" header, scrollable list of news cards (headline, summary, source, relative timestamp)
-- `src/components/MarketFooter.tsx` -- Footer bar showing market open/closed status, data refresh intervals
+### 3. Update `NewsSidebar.tsx` for mobile
+- Remove `w-full` default (which makes it take 100% on mobile and push the grid out)
+- On mobile: render as a full-width section below the grid with a max height and scroll
+- On desktop: keep the fixed `lg:w-80 xl:w-96` sidebar behavior
 
-### 5. Update `src/pages/Index.tsx`
-- Compose all components into the dashboard layout
-- Dark background, full-viewport layout
-- Left section (~70%): Header + ETFGrid
-- Right section (~30%): NewsSidebar
-- Bottom: MarketFooter
+### 4. Minor ETF card spacing
+- Add slightly more padding between MA values in the 3-column grid
+- Ensure the Fear/Greed label row has a small bottom margin so cards don't feel clipped
 
-### 6. Update `src/index.css`
-- Ensure dark mode is the default (add `dark` class to root or set dark theme variables as default)
+## Technical Details
 
-## Data Shape Reference
-
-**ETF data** (from cache key `etf-data`): array of objects with fields:
-`ticker, name, sector, price, ma200, ma50, ma9, rsi, volume, avgVolume, fearGreedScore, fearGreedLabel`
-
-**News data** (from cache key `etf-news`): array of objects with fields:
-`id, headline, summary, source, url, timestamp`
-
-Both endpoints also return a `fetchedAt` ISO timestamp for the "Updated..." label.
-
-## Visual Design Details
-
-- Dark background (`#0a0a0a` or similar very dark gray)
-- Cards with dark borders and subtle backgrounds
-- Green for positive values/bullish, red for negative/bearish, amber/yellow for neutral
-- Fear/Greed bar: gradient from red (fear) through yellow (neutral) to green (greed)
-- Monospace font for the header title
-- Compact, information-dense layout matching the terminal aesthetic from the screenshot
+| File | Change |
+|------|--------|
+| `src/App.css` | Remove `#root` max-width/padding/text-align rules |
+| `src/pages/Index.tsx` | Change inner `flex` to `flex-col lg:flex-row` for responsive stacking |
+| `src/components/NewsSidebar.tsx` | Replace `w-full lg:w-80` with responsive classes; add max-h on mobile |
+| `src/components/ETFCard.tsx` | Add `gap-2` to MA grid, minor bottom padding |
+| `src/components/ETFGrid.tsx` | Ensure grid scrolls properly within its container on both layouts |
