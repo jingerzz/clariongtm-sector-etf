@@ -80,6 +80,8 @@ Deno.serve(async (req) => {
     const content = result.choices?.[0]?.message?.content || "[]";
     const citations: string[] = result.citations || [];
 
+    console.log("Raw Perplexity content:", content);
+
     // Parse the JSON array from the response
     let newsItems: Array<{ headline: string; summary: string; source: string }> = [];
     try {
@@ -90,6 +92,10 @@ Deno.serve(async (req) => {
     } catch {
       console.error("Failed to parse news JSON:", content);
       newsItems = [];
+    }
+
+    if (newsItems.length === 0) {
+      throw new Error("Parsed zero news items from Perplexity response");
     }
 
     const now = new Date().toISOString();
