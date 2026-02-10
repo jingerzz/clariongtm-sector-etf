@@ -1,43 +1,52 @@
 
 
-# Simplify ETF Cards for Better Readability
+# Remove Frontend Polling, Add Market-Aware Backend Schedules
 
-## Problem
-The ETF cards are too information-dense, especially the 3-column moving average row which crams three values with trend icons into a tight space. This makes them hard to scan quickly across browsers.
+## What Changes
 
-## Changes
+### 1. Remove frontend polling from both hooks
+Strip out `refetchInterval`, `staleTime`, and the `useMarketStatus` dependency from `useETFData.ts` and `useMarketNews.ts`. The hooks will fetch once on mount and only re-fetch when the user clicks the refresh button (which already calls `queryClient.invalidateQueries`).
 
-### 1. `src/components/ETFCard.tsx` — Simplify to single 50-day MA
-- **Remove** the 3-column MA grid entirely
-- **Replace** with a single inline row showing just the 50-day MA value and its trend icon
-- This frees up vertical space and eliminates the most cramped section of the card
-- The 50-day MA is the most commonly referenced moving average for intermediate trend analysis, making it the best single choice
+### 2. Replace the two fixed pg_cron jobs with four market-aware cron jobs
+The current cron jobs run at fixed intervals 24/7. Replace them with schedules that match the desired windows:
 
-**Before (3 rows, cramped):**
+| Job | Schedule | When |
+|-----|----------|------|
+| ETF data (market open) | Every 5 min, Mon-Fri 9:30-15:55 ET | `*/5 14-20 * * 1-5` (UTC approximation) |
+| ETF data (market closed) | Every 30 min, outside market hours | `*/30 0-13,21-23 * * *` + weekends |
+| News (market open) | Every 15 min, Mon-Fri 9:30-15:55 ET | `*/15 14-20 * * 1-5` |
+| News (market closed) | Every 60 min, outside market hours | `0 0-13,21-23 * * *` + weekends |
+
+Note: ET is UTC-5 (EST) or UTC-4 (EDT). A simpler approach is to use two jobs per data type -- one for weekday business hours (UTC), one for everything else -- and let the edge function's cache TTL handle the boundary gracefully.
+
+### 3. Clean up `useMarketStatus` usage
+Since the hooks no longer need market status for polling, check if `useMarketStatus` is still used elsewhere (Header and MarketFooter use it for the status dot). If so, keep it. Just remove the import from the two data hooks.
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `src/hooks/useETFData.ts` | Remove `refetchInterval`, `staleTime`, and `useMarketStatus` import |
+| `src/hooks/useMarketNews.ts` | Remove `refetchInterval`, `staleTime`, and `useMarketStatus` import |
+| Database (SQL) | Drop existing 2 cron jobs, create 4 market-aware cron jobs |
+
+## Technical Detail: Cron Schedules (UTC)
+
+Assuming EST (UTC-5), market hours 9:30-16:00 ET = 14:30-21:00 UTC:
+
 ```text
-200d 542.31 ↑  50d 538.10 ↑  9d 540.22 →
+-- ETF during market hours (every 5 min, Mon-Fri, 14:00-21:00 UTC)
+*/5 14-20 * * 1-5
+
+-- ETF outside market hours (every 30 min, all other times)
+*/30 0-13,21-23 * * 1-5
+*/30 * * * 0,6
+
+-- News during market hours (every 15 min, Mon-Fri, 14:00-21:00 UTC)
+*/15 14-20 * * 1-5
+
+-- News outside market hours (every 60 min, all other times)
+0 0-13,21-23 * * 1-5
+0 * * * 0,6
 ```
-
-**After (1 clean line):**
-```text
-50d MA  538.10  ↑
-```
-
-### 2. `src/components/ETFCard.tsx` — Increase base font sizes slightly
-- Bump the RSI/Volume row from `text-[11px]` to `text-xs` (12px) for better legibility
-- Bump the Fear/Greed label from `text-[9px]` to `text-[10px]`
-
-### 3. `src/components/ETFCard.tsx` — Add slightly more padding
-- Increase card padding from `p-3` to `p-4` for more breathing room
-
-## Technical Details
-
-Only one file changes: `src/components/ETFCard.tsx`
-
-| Section | Current | Proposed |
-|---------|---------|----------|
-| Moving Averages | 3-column grid (200d, 50d, 9d) | Single row: 50d MA only |
-| Card padding | `p-3` | `p-4` |
-| RSI/Vol font | `text-[11px]` | `text-xs` |
-| F/G label font | `text-[9px]` | `text-[10px]` |
 
