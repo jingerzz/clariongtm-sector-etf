@@ -38,16 +38,21 @@ export function NewsSidebar() {
             : data?.items.map((item) => (
                 <a
                   key={item.id}
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 rounded-lg border border-[hsl(0,0%,15%)] bg-[hsl(0,0%,7%)] hover:border-[hsl(0,0%,25%)] transition-colors group"
+                  href={item.url || undefined}
+                  target={item.url ? "_blank" : undefined}
+                  rel={item.url ? "noopener noreferrer" : undefined}
+                  className={`block p-3 rounded-lg border border-[hsl(0,0%,15%)] bg-[hsl(0,0%,7%)] transition-colors group ${
+                    item.url ? "hover:border-[hsl(0,0%,25%)] cursor-pointer" : "cursor-default"
+                  }`}
+                  onClick={item.url ? undefined : (e) => e.preventDefault()}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-xs font-semibold text-[hsl(0,0%,85%)] leading-tight group-hover:text-[hsl(0,0%,95%)]">
                       {item.headline}
                     </h3>
-                    <ExternalLink className="w-3 h-3 shrink-0 mt-0.5 text-[hsl(0,0%,30%)] group-hover:text-[hsl(0,0%,60%)]" />
+                    {item.url && (
+                      <ExternalLink className="w-3 h-3 shrink-0 mt-0.5 text-[hsl(0,0%,30%)] group-hover:text-[hsl(0,0%,60%)]" />
+                    )}
                   </div>
                   <p className="text-[11px] text-[hsl(0,0%,50%)] mt-1.5 line-clamp-2 leading-relaxed">
                     {item.summary}
