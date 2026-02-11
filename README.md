@@ -1,73 +1,111 @@
-# Welcome to your Lovable project
+# ClarionGTM Sector ETF Tracker
 
-## Project info
+A React + Supabase dashboard for monitoring key U.S. sector ETFs and market-moving news in one view.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Overview
 
-## How can I edit this code?
+This app presents a market snapshot with:
 
-There are several ways of editing your application.
+- A **sector ETF grid** with momentum-style metrics (price, short/medium trend context, RSI, and fear/greed signal).
+- A **market news panel** sourced through a Supabase Edge Function.
+- A **market status indicator** and manual refresh for data revalidation.
 
-**Use Lovable**
+The UI is optimized for fast scanning during market hours with a compact, dark terminal-style visual design.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend:** React 18, TypeScript, Vite
+- **UI:** Tailwind CSS, shadcn/ui, lucide-react
+- **Data Fetching:** TanStack Query
+- **Backend Integration:** Supabase JS client + Supabase Edge Functions
+- **Testing:** Vitest + Testing Library
 
-**Use your preferred IDE**
+## Project Structure
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```text
+src/
+  components/        # Layout, ETF cards/grid, header/footer, news sidebar
+  hooks/             # Query hooks for ETF/news data and market status logic
+  integrations/      # Supabase client and generated types
+  pages/             # Route-level pages
+supabase/
+  functions/         # Edge Functions (e.g., fetch-etf-news)
+  migrations/        # SQL migrations
 ```
 
-**Edit a file directly in GitHub**
+## Prerequisites
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Node.js** 18+
+- **npm** 9+
+- A **Supabase project**
 
-**Use GitHub Codespaces**
+## Local Development
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Clone the repository:
 
-## What technologies are used for this project?
+   ```bash
+   git clone https://github.com/jingerzz/clariongtm-sector-etf.git
+   cd clariongtm-sector-etf
+   ```
 
-This project is built with:
+2. Install dependencies:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+   ```bash
+   npm install
+   ```
 
-## How can I deploy this project?
+3. Create a local environment file:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+   ```bash
+   cp .env.example .env.local
+   ```
 
-## Can I connect a custom domain to my Lovable project?
+4. Configure environment variables in `.env.local`:
 
-Yes, you can!
+   ```bash
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_or_publishable_key
+   ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+5. Start the app:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+   ```bash
+   npm run dev
+   ```
+
+6. Open the URL shown by Vite (typically `http://localhost:5173`).
+
+## Supabase Edge Functions
+
+The frontend expects these functions to be available:
+
+- `fetch-etf-data`
+- `fetch-etf-news`
+
+This repo includes the `fetch-etf-news` function in `supabase/functions/fetch-etf-news`. If deploying that function, set the required secrets in Supabase (for example `PERPLEXITY_API_KEY`, plus your standard Supabase runtime secrets).
+
+## Available Scripts
+
+- `npm run dev` – Start local dev server
+- `npm run build` – Production build
+- `npm run preview` – Preview production build locally
+- `npm run lint` – Lint the codebase
+- `npm test` – Run unit tests once
+- `npm run test:watch` – Run tests in watch mode
+
+## Deployment
+
+You can deploy the frontend to any static host (Vercel, Netlify, Cloudflare Pages, etc.) and connect it to your Supabase project.
+
+At minimum, configure the same frontend environment variables in your deployment environment:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+## Contributing
+
+Contributions are welcome. Please open an issue or PR for bugs, feature ideas, or documentation improvements.
+
+## License
+
+This project is licensed under the **Apache License 2.0**. See [LICENSE](./LICENSE).
