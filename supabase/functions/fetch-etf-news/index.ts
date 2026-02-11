@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a financial news aggregator. Return ONLY a JSON array of the 8 most important market/ETF news stories from today. Each item must have: headline, summary (1-2 sentences), source (publication name). Do NOT include any URLs — I will get those from citations. Format: [{"headline":"...","summary":"...","source":"..."}]`,
+            content: `You are a financial news aggregator. Return ONLY a JSON array of the 12 most important market/ETF news stories from today. Each item must have: headline, summary (1-2 sentences), source (publication name). After each headline, include the citation number in square brackets like [1]. Do NOT include URLs. Format: [{"headline":"Headline text [1]","summary":"...","source":"..."}]`,
           },
           {
             role: "user",
@@ -66,8 +66,9 @@ Deno.serve(async (req) => {
           "barrons.com",
           "ft.com",
         ],
+        search_recency_filter: "day",
         temperature: 0.1,
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     });
 
@@ -99,16 +100,39 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString();
-    const items = newsItems.map(
-      (item: { headline: string; summary: string; source: string }, i: number) => ({
-        id: `news-${i}`,
-        headline: item.headline,
-        summary: item.summary,
-        source: item.source,
-        // Use citation URLs from Perplexity's search results
-        url: citations[i] || "",
-        timestamp: now,
-      })
+    // Deduplicate by headline similarity and map citations
+    const seen = new Set<string>();
+    const dedupedItems: typeof newsItems = [];
+    for (const item of newsItems) {
+      const key = item.headline.replace(/\s*\[\d+\]/g, "").toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        dedupedItems.push(item);
+      }
+    }
+
+    // Take best 8
+    const topItems = dedupedItems.slice(0, 8);
+
+    const items = topItems.map(
+      (item: { headline: string; summary: string; source: string }, i: number) => {
+        // Extract citation marker [N] from headline
+        const citationMatch = item.headline.match(/\[(\d+)\]/);
+        const citationIndex = citationMatch ? parseInt(citationMatch[1]) - 1 : -1;
+        const url = citationIndex >= 0 && citationIndex < citations.length
+          ? citations[citationIndex] : "";
+        // Strip [N] marker for clean display
+        const cleanHeadline = item.headline.replace(/\s*\[\d+\]/g, "").trim();
+
+        return {
+          id: `news-${i}`,
+          headline: cleanHeadline,
+          summary: item.summary.replace(/\s*\[\d+\]/g, "").trim(),
+          source: item.source,
+          url,
+          timestamp: now,
+        };
+      }
     );
 
     const payload = { fetchedAt: now, items };
