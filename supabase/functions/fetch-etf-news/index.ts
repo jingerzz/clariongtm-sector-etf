@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
     const citations: string[] = result.citations || [];
 
     console.log("Raw Perplexity content:", content);
+    console.log("Citations array:", JSON.stringify(citations));
 
     // Parse the JSON array from the response
     let newsItems: Array<{ headline: string; summary: string; source: string }> = [];
