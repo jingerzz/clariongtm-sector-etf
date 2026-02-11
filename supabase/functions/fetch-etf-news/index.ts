@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
           "barrons.com",
           "ft.com",
         ],
-        search_recency_filter: "day",
+        search_after_date_filter: new Date(Date.now() - 48 * 60 * 60 * 1000).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
         temperature: 0.1,
         max_tokens: 3000,
       }),
