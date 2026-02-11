@@ -48,12 +48,12 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a financial news aggregator. Return ONLY a JSON array of the 12 most important market/ETF news stories from today. Each item must have: headline, summary (1-2 sentences), source (publication name). After each headline, include the citation number in square brackets like [1]. Do NOT include URLs. Format: [{"headline":"Headline text [1]","summary":"...","source":"..."}]`,
+            content: `You are a financial news aggregator. Return ONLY a JSON array of the 12 most important financial and market news stories from today. Cover a mix of: macroeconomic data, Federal Reserve and interest rate developments, geopolitical events affecting markets, major equity moves, sector trends, commodities, bonds, and ETF flows. Each item must have: headline, summary (1-2 sentences), source (publication name). After each headline, include the citation number in square brackets like [1]. Do NOT include URLs. Format: [{"headline":"Headline text [1]","summary":"...","source":"..."}]`,
           },
           {
             role: "user",
             content:
-              "What are the top market and sector ETF news stories today? Focus on US equity sectors, commodities, bonds, and macro events affecting ETFs.",
+              "What are today's top financial and market news stories? Include macroeconomic indicators, Fed/central bank actions, geopolitical developments, major stock moves, sector rotation, commodities, bonds, and notable ETF flows.",
           },
         ],
         search_recency_filter: "day",
