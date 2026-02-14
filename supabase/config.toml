@@ -1,1 +1,7 @@
 project_id = "wbopkeaiwbacxmncaagf"
+
+[functions.llms-txt]
+verify_jwt = false
+
+[functions.site-summary]
+verify_jwt = false
