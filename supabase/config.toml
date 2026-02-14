@@ -1,5 +1,11 @@
 project_id = "wbopkeaiwbacxmncaagf"
 
+[functions.fetch-etf-data]
+verify_jwt = false
+
+[functions.fetch-etf-news]
+verify_jwt = false
+
 [functions.llms-txt]
 verify_jwt = false
 
