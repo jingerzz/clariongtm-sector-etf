@@ -22,6 +22,10 @@ const TICKERS = [
   { ticker: "XLU", name: "Utilities Select Sector", sector: "Utilities" },
   { ticker: "XLV", name: "Health Care Select Sector", sector: "Healthcare" },
   { ticker: "XLY", name: "Consumer Discretionary", sector: "Discretionary" },
+  { ticker: "XHB", name: "SPDR S&P Homebuilders", sector: "Homebuilders" },
+  { ticker: "XME", name: "SPDR S&P Metals & Mining", sector: "Metals/Mining" },
+  { ticker: "XSD", name: "SPDR S&P Semiconductor", sector: "Semiconductors" },
+  { ticker: "KRE", name: "SPDR S&P Regional Banking", sector: "Reg. Banking" },
 ];
 
 function computeRSI(closes: number[], period = 14): number {
