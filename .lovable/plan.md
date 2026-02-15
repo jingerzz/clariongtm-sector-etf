@@ -1,78 +1,30 @@
 
 
-# Make Your Dashboard Readable by LLM Agents
+# Add XHB, XME, XSD, KRE to the Dashboard
 
-## The Problem
+## Changes
 
-Your app is a client-side React SPA. When ChatGPT, Perplexity, or other LLM agents try to read your site, they get an empty `<div id="root"></div>` -- no data, no prices, no news.
+A single file needs updating:
 
-## The Solution: Two Complementary Approaches
+**`supabase/functions/fetch-etf-data/index.ts`** -- Add four new entries to the `TICKERS` array:
 
-### 1. Add an `llms.txt` file (the "robots.txt for AI")
+| Ticker | Name | Sector Label |
+|--------|------|-------------|
+| XHB | SPDR S&P Homebuilders | Homebuilders |
+| XME | SPDR S&P Metals & Mining | Metals/Mining |
+| XSD | SPDR S&P Semiconductor | Semiconductors |
+| KRE | SPDR S&P Regional Banking | Reg. Banking |
 
-A new standard (`llmstxt.org`) that LLM agents check first when visiting a site. We'll serve a dynamically generated `llms.txt` at your site's root that includes:
+These will automatically:
+- Get fetched alongside the existing 12 tickers (same Yahoo Finance call)
+- Have RSI, moving averages, and Fear/Greed scores calculated
+- Appear as new cards in the ETF grid (the frontend maps over `data.items` dynamically)
+- Show up in the `llms.txt` and `site-summary` endpoints
 
-- Site description and purpose
-- Current ETF prices, moving averages, RSI, fear/greed scores
-- Latest market news headlines with source links
-- A link to the JSON API for programmatic access
-
-This is generated live from your cached data, so agents always get fresh numbers.
-
-### 2. Create a public JSON API endpoint
-
-A dedicated edge function (`/functions/v1/site-summary`) that returns all dashboard data in clean, structured JSON. This lets more sophisticated agents or tools fetch your data programmatically.
-
-## How It Works
-
-```text
-LLM Agent visits clariongtm-sector-etf.lovable.app
-        |
-        v
-  Checks /llms.txt
-        |
-        v
-  Gets structured markdown with:
-  - All ETF tickers, prices, RSI, trend signals
-  - Market news headlines + summaries
-  - Link to JSON API for raw data
-```
-
-## What Gets Created
-
-| Item | Description |
-|------|-------------|
-| `supabase/functions/llms-txt/index.ts` | Edge function that reads cached ETF + news data from the database and renders a markdown `llms.txt` response |
-| `supabase/functions/site-summary/index.ts` | Edge function returning the same data as structured JSON |
-| Update `supabase/config.toml` | Register both new functions (no JWT required -- public endpoints) |
-
-## Example `llms.txt` Output
-
-```text
-# ClarionGTM Sector ETF Dashboard
-
-> Real-time sector ETF performance tracking and market news dashboard.
-
-## Current ETF Data (as of 2026-02-14T15:30:00Z)
-
-- [XLK] Technology: $215.43 | RSI 62.1 (Neutral) | 50d MA $210.12 (Above) | F/G 58 Greed
-- [XLF] Financials: $42.18 | RSI 71.3 (Overbought) | 50d MA $40.55 (Above) | F/G 65 Greed
-- ...
-
-## Market News
-
-- Fed Holds Rates Steady, Signals Patience on Cuts (Reuters)
-- China Trade Data Beats Expectations (Bloomberg)
-- ...
-
-## API
-
-- [JSON API](https://wbopkeaiwbacxmncaagf.supabase.co/functions/v1/site-summary): Full structured data
-```
+No frontend changes needed -- the grid already renders whatever items the API returns.
 
 ## Technical Details
 
-- Both edge functions read from the existing `cache` table (keys `etf-data` and `etf-news`) -- no extra API calls
-- No authentication required -- these are public, read-only endpoints
-- The `llms.txt` function computes the same derived values shown on the dashboard (daily change %, trend direction, RSI label)
-- Response includes `Cache-Control` headers to avoid excessive hits
+- The edge function's cache key (`etf-data`) stays the same; the next cache miss will fetch all 16 tickers and store the updated payload
+- The grid will expand from 12 to 16 cards, fitting naturally into the existing 4-column layout (4 full rows on desktop)
+
