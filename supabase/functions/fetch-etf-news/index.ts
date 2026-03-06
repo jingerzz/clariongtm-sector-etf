@@ -9,16 +9,45 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const CACHE_KEY = "etf-news";
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
+async function firecrawlSearch(apiKey: string, query: string, limit = 4) {
+  const response = await fetch("https://api.firecrawl.dev/v1/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query,
+      limit,
+      tbs: "qdr:d",
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Firecrawl search error [${response.status}]: ${errText}`);
+  }
+
+  return response.json();
+}
+
+function extractDomain(url: string): string {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname.replace(/^www\./, "");
+  } catch {
+    return "Unknown";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate the request has a valid apikey or authorization header
     const authHeader = req.headers.get("authorization") || "";
     const apiKeyHeader = req.headers.get("apikey") || "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
     if (!authHeader && !apiKeyHeader) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
@@ -44,99 +73,51 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("PERPLEXITY_API_KEY");
+    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
     if (!apiKey) {
-      throw new Error("PERPLEXITY_API_KEY is not configured");
+      throw new Error("FIRECRAWL_API_KEY is not configured");
     }
 
-    const response = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          {
-            role: "system",
-            content: `You are a financial news aggregator. Return ONLY a JSON array of the 12 most important financial and market news stories from today. Cover a mix of: macroeconomic data, Federal Reserve and interest rate developments, geopolitical events affecting markets, major equity moves, sector trends, commodities, bonds, and ETF flows. Each item must have: headline, summary (1-2 sentences), source (publication name). After each headline, include the citation number in square brackets like [1]. Do NOT include URLs. Format: [{"headline":"Headline text [1]","summary":"...","source":"..."}]`,
-          },
-          {
-            role: "user",
-            content:
-              "What are today's top financial and market news stories? Include macroeconomic indicators, Fed/central bank actions, geopolitical developments, major stock moves, sector rotation, commodities, bonds, and notable ETF flows.",
-          },
-        ],
-        search_recency_filter: "day",
-        temperature: 0.1,
-        max_tokens: 3000,
-      }),
-    });
+    // Run 3 parallel searches with finance-focused queries
+    const queries = [
+      "sector ETF stock market moves today",
+      "Federal Reserve interest rates economy news today",
+      "commodities bonds geopolitical market news today",
+    ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Perplexity API error [${response.status}]: ${errText}`);
-    }
+    const results = await Promise.all(
+      queries.map((q) => firecrawlSearch(apiKey, q, 4))
+    );
 
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content || "[]";
-    const citations: string[] = result.citations || [];
+    // Flatten and deduplicate by URL
+    const seen = new Set<string>();
+    const allItems: Array<{ url: string; title: string; description: string }> = [];
 
-    console.log("Raw Perplexity content:", content);
-    console.log("Citations array:", JSON.stringify(citations));
-
-    // Parse the JSON array from the response
-    let newsItems: Array<{ headline: string; summary: string; source: string }> = [];
-    try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        newsItems = JSON.parse(jsonMatch[0]);
+    for (const result of results) {
+      const data = result.data || [];
+      for (const item of data) {
+        if (item.url && !seen.has(item.url)) {
+          seen.add(item.url);
+          allItems.push(item);
+        }
       }
-    } catch {
-      console.error("Failed to parse news JSON:", content);
-      newsItems = [];
     }
 
-    if (newsItems.length === 0) {
-      throw new Error("Parsed zero news items from Perplexity response");
+    if (allItems.length === 0) {
+      throw new Error("No news items returned from Firecrawl search");
     }
 
     const now = new Date().toISOString();
-    // Deduplicate by headline similarity and map citations
-    const seen = new Set<string>();
-    const dedupedItems: typeof newsItems = [];
-    for (const item of newsItems) {
-      const key = item.headline.replace(/\s*\[\d+\]/g, "").toLowerCase().trim();
-      if (!seen.has(key)) {
-        seen.add(key);
-        dedupedItems.push(item);
-      }
-    }
+    const topItems = allItems.slice(0, 8);
 
-    // Take best 8
-    const topItems = dedupedItems.slice(0, 8);
-
-    const items = topItems.map(
-      (item: { headline: string; summary: string; source: string }, i: number) => {
-        // Extract citation marker [N] from headline
-        const citationMatch = item.headline.match(/\[(\d+)\]/);
-        const citationIndex = citationMatch ? parseInt(citationMatch[1]) - 1 : -1;
-        const url = citationIndex >= 0 && citationIndex < citations.length
-          ? citations[citationIndex] : "";
-        // Strip [N] marker for clean display
-        const cleanHeadline = item.headline.replace(/\s*\[\d+\]/g, "").trim();
-
-        return {
-          id: `news-${i}`,
-          headline: cleanHeadline,
-          summary: item.summary.replace(/\s*\[\d+\]/g, "").trim(),
-          source: item.source,
-          url,
-          timestamp: now,
-        };
-      }
-    );
+    const items = topItems.map((item, i) => ({
+      id: `news-${i}`,
+      headline: (item.title || "").trim(),
+      summary: (item.description || "").trim(),
+      source: extractDomain(item.url),
+      url: item.url,
+      timestamp: now,
+    }));
 
     const payload = { fetchedAt: now, items };
 
