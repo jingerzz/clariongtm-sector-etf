@@ -64,7 +64,7 @@ export function NewsSidebar() {
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-[10px] text-[hsl(210,50%,60%)]">{item.source}</span>
                     <span className="text-[10px] text-[hsl(0,0%,35%)]">
-                      {timeAgo(item.timestamp)}
+                      {timeAgo(item.timestamp, item.hoursAgo)}
                     </span>
                   </div>
                 </a>
