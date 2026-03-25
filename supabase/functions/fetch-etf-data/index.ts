@@ -96,6 +96,7 @@ async function fetchYahooData(ticker: string) {
   const closes: number[] = result.indicators?.quote?.[0]?.close?.filter((c: any) => c != null) || [];
   const volumes: number[] = result.indicators?.quote?.[0]?.volume?.filter((v: any) => v != null) || [];
   const price = closes[closes.length - 1];
+  const prevClose = closes.length >= 2 ? closes[closes.length - 2] : price;
   const volume = volumes[volumes.length - 1] || 0;
 
   // Average volume (last 50 days)
@@ -115,6 +116,7 @@ async function fetchYahooData(ticker: string) {
 
   return {
     price,
+    prevClose,
     ma9,
     ma50,
     ma200,
