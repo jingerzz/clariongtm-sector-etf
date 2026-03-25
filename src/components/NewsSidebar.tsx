@@ -3,7 +3,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink } from "lucide-react";
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string, hoursAgo?: number) {
+  if (hoursAgo !== undefined && hoursAgo > 0) {
+    if (hoursAgo < 1) return "just now";
+    return `${Math.round(hoursAgo)}h ago`;
+  }
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60_000);
   if (mins < 1) return "just now";
@@ -60,7 +64,7 @@ export function NewsSidebar() {
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-[10px] text-[hsl(210,50%,60%)]">{item.source}</span>
                     <span className="text-[10px] text-[hsl(0,0%,35%)]">
-                      {timeAgo(item.timestamp)}
+                      {timeAgo(item.timestamp, item.hoursAgo)}
                     </span>
                   </div>
                 </a>
