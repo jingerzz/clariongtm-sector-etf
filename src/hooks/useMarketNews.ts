@@ -8,12 +8,15 @@ export interface NewsItem {
   source: string;
   url: string;
   timestamp: string;
+  hoursAgo?: number;
 }
 
 interface NewsResponse {
   fetchedAt: string;
   items: NewsItem[];
 }
+
+const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
 export function useMarketNews() {
   return useQuery<NewsResponse>({
@@ -23,5 +26,7 @@ export function useMarketNews() {
       if (error) throw error;
       return data as NewsResponse;
     },
+    staleTime: TWENTY_FOUR_HOURS,
+    gcTime: TWENTY_FOUR_HOURS,
   });
 }
