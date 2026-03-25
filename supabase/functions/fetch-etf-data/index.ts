@@ -144,22 +144,33 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Check for force refresh flag
+    let force = false;
+    try {
+      const body = await req.json();
+      force = body?.force === true;
+    } catch { /* no body or invalid JSON — that's fine */ }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check cache
-    const { data: cached } = await supabase
-      .from("cache")
-      .select("data, fetched_at, expires_at")
-      .eq("key", CACHE_KEY)
-      .single();
+    // Check cache (skip if force refresh)
+    if (!force) {
+      const { data: cached } = await supabase
+        .from("cache")
+        .select("data, fetched_at, expires_at")
+        .eq("key", CACHE_KEY)
+        .single();
 
-    if (cached && new Date(cached.expires_at) > new Date()) {
-      console.info("Cache hit for etf-data");
-      return new Response(JSON.stringify(cached.data), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (cached && new Date(cached.expires_at) > new Date()) {
+        console.info("Cache hit for etf-data");
+        return new Response(JSON.stringify(cached.data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      console.info("Force refresh requested — bypassing cache");
     }
 
     console.info("Cache miss — fetching fresh ETF data");
