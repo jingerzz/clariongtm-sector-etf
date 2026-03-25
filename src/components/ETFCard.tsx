@@ -29,7 +29,7 @@ function fgColor(score: number) {
 
 
 export function ETFCard({ etf }: { etf: ETFItem }) {
-  const dailyChange = ((etf.price - etf.ma9) / etf.ma9) * 100;
+  const dailyChange = ((etf.price - etf.prevClose) / etf.prevClose) * 100;
   const isPositive = dailyChange >= 0;
 
   return (

@@ -6,6 +6,7 @@ export interface ETFItem {
   name: string;
   sector: string;
   price: number;
+  prevClose: number;
   ma200: number;
   ma50: number;
   ma9: number;
